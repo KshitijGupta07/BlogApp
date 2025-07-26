@@ -6,16 +6,36 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
   const router = useRouter();
 
   const handleRegister = async () => {
+    setMessage('');
+    setIsError(false);
+
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
       headers: { 'Content-Type': 'application/json' },
     });
+
+    const data = await res.json();
+
+    if (res.status === 409) {
+      // 🟢 User already exists
+      setMessage('User already exists');
+      setIsError(false); // Green message
+      return;
+    }
+
     if (res.ok) {
+      // ✅ Registration success
       router.push('/login');
+    } else {
+      // 🔴 Unexpected error
+      setMessage(data.message || 'Registration failed');
+      setIsError(true); // Red message
     }
   };
 
@@ -47,6 +67,12 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
+
+        {message && (
+          <p className={`text-center mb-4 ${isError ? 'text-red-600' : 'text-green-600'}`}>
+            {message}
+          </p>
+        )}
 
         <button
           onClick={handleRegister}
