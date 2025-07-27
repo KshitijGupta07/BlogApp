@@ -1,15 +1,31 @@
 'use client';
 
-import { useState } from "react";
-import { defaultPosts } from "@/utils/defaultPosts";
-import Link from "next/link";
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { defaultPosts } from '@/utils/defaultPosts';
+import Link from 'next/link';
 
 export default function DashboardClient() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [posts, setPosts] = useState(defaultPosts);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState("");
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [image, setImage] = useState('');
   const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
+
+  const user = session?.user;
 
   const handleCreateVlog = () => {
     if (!title || !content || !image) {
@@ -22,19 +38,21 @@ export default function DashboardClient() {
       title,
       content,
       image,
-      author: "You",
+      author: user?.name || 'You',
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
     setPosts([newPost, ...posts]);
-    setTitle("");
-    setContent("");
-    setImage("");
+    setTitle('');
+    setContent('');
+    setImage('');
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold mb-8 text-center text-indigo-700 tracking-wide">Welcome to Your Dashboard</h1>
+    <div className="p-6 max-w-7xl mx-auto relative">
+      <h1 className="text-4xl font-bold mb-8 text-center text-indigo-700 tracking-wide">
+        Welcome to Your Dashboard
+      </h1>
 
       <div className="bg-white shadow-xl rounded-2xl p-6 mb-12 border border-gray-200">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4">✍️ Create a New Vlog</h2>
@@ -90,10 +108,12 @@ export default function DashboardClient() {
               </div>
               <div className="p-5">
                 <h3 className="text-xl font-semibold text-indigo-800 mb-2">{post.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   {post.content.slice(0, 150)}...
                 </p>
-                <div className="mt-4 text-sm text-gray-500">By {post.author} • {post.createdAt}</div>
+                <div className="mt-4 text-sm text-gray-500">
+                  By {post.author} • {post.createdAt}
+                </div>
               </div>
             </div>
           </Link>

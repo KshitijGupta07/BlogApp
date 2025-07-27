@@ -1,47 +1,77 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
+import DashboardPage from '../dashboard/page';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      setError('All fields are required');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      console.log(session)
+      if (session) {
         router.push('/dashboard');
-      } else {
-        setError(data.message || 'Login failed');
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Something went wrong');
-    }
-  };
+    };
 
-  const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
-  };
+    checkSession();
+  }, [router]);
+
+  const handleLogin = async () => {
+  if (!username || !password) {
+    setError('All fields are required');
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    const result = await signIn('credentials', {
+      redirect: false,
+      username,
+      password,
+    
+    });
+
+    if (result?.error) {
+      setError('Invalid username or password');
+    } else {
+      router.push('/dashboard');
+    }
+  } catch (err) {
+    setError('An error occurred during login.');
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleGoogleLogin = () => {
+  if (typeof window === 'undefined') {
+    console.error('❌ Window is not defined');
+    return;
+  }
+
+  const origin = window.location.origin;
+  const callbackUrl = `${origin}/dashboard`;
+
+  try {
+    // ✅ Validate the URL before using
+    new URL(callbackUrl);
+    console.log("✅ Google login redirecting to:", callbackUrl);
+    signIn('google', { callbackUrl });
+  } catch (error) {
+    console.error('❌ Invalid callback URL:', callbackUrl, error);
+  }
+};
+
+
 
   const handleRegister = () => {
     router.push('/register');
@@ -71,17 +101,17 @@ export default function LoginPage() {
 
       <button
         onClick={handleLogin}
-        className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition mb-3"
+        disabled={isLoading}
+        className={`w-full py-2 rounded mb-3 text-white transition ${
+          isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+        }`}
       >
-        Login
+        {isLoading ? 'Logging in...' : 'Login'}
       </button>
 
       <div className="flex justify-between items-center mb-4">
         <span className="text-sm text-gray-500">New here?</span>
-        <button
-          onClick={handleRegister}
-          className="text-indigo-600 text-sm hover:underline"
-        >
+        <button onClick={handleRegister} className="text-indigo-600 text-sm hover:underline">
           Register
         </button>
       </div>
