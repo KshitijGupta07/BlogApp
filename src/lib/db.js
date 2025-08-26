@@ -1,21 +1,20 @@
-// lib/mongodb.js
+// src/lib/db.js
+import "server-only";
 import mongoose from 'mongoose';
 
-let isConnected = false;
+const { MONGODB_URI, MONGODB_DB } = process.env;
+if (!MONGODB_URI) throw new Error('Missing MONGODB_URI in environment');
 
-export async function connectDB() {
-  if (isConnected) return;
+let cached = global.mongoose;
+if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    isConnected = true;
-    console.log('MongoDB connected');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
+export default async function connectToDB() {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(MONGODB_URI, { dbName: MONGODB_DB })
+      .then((m) => m);
   }
+  cached.conn = await cached.promise;
+  return cached.conn;
 }

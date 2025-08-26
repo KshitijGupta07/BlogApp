@@ -1,72 +1,94 @@
-'use client';
+// app/page.js
+import Image from "next/image";
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-
-export default function HomePage() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser && storedUser !== 'undefined') {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-
-    const handleStorageChange = () => {
-      const updatedUser = localStorage.getItem('user');
-      if (!updatedUser || updatedUser === 'undefined') {
-        setUser(null); // show login button again
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+export default async function Home() {
+  const session = await getServerSession(authOptions);
 
   return (
-    <div className="relative bg-gradient-to-br from-indigo-50 via-white to-indigo-100 min-h-screen text-gray-800 overflow-hidden">
-      <div className="absolute top-10 -left-10 w-64 h-64 bg-indigo-100 rounded-full mix-blend-multiply filter blur-2xl opacity-40 animate-pulse"></div>
-      <div className="absolute bottom-10 -right-10 w-72 h-72 bg-purple-100 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-pulse"></div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-5xl font-extrabold text-indigo-700 mb-4 leading-tight drop-shadow-md">
-          Welcome to <span className="text-purple-600">Blogify</span>
+    <main className="flex flex-col items-center">
+      {/* Hero / Intro */}
+      <section className="py-16 text-center max-w-3xl">
+        <h1 className="text-5xl font-extrabold tracking-tight text-purple-600">
+          Welcome to Blogify
         </h1>
-        <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-          A beautiful platform to express yourself. Share your thoughts, tutorials, life stories, and opinions with the world.
+        <p className="mt-4 text-lg text-gray-700">
+          A beautiful platform to express yourself. Share your thoughts, tutorials,
+          life stories, and opinions with the world.
         </p>
 
-        {!user && (
-          <Link href="/login">
-            <button className="bg-indigo-600 text-white px-8 py-3 text-lg rounded-lg shadow hover:bg-indigo-700 transition-all duration-300">
-              Login to Get Started
-            </button>
-          </Link>
-        )}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          {session ? (
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-purple-600 px-6 py-3 text-white shadow"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg border px-6 py-3 text-gray-700 hover:bg-blue-100"
+            >
+              Get Started
+            </Link>
+          )}
+        </div>
+      </section>
 
-        <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <div className="transition transform hover:-translate-y-1 hover:shadow-xl">
-            <Image src="/blog1.jpg" alt="blog example" width={400} height={250} className="rounded-lg" />
+      {/* Featured images */}
+      <section className="w-full max-w-5xl px-6 pb-16">
+        <h2 className="mb-6 text-2xl font-semibold text-gray-900">Featured</h2>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Card 1 */}
+          <div className="rounded-2xl overflow-hidden shadow border bg-white">
+            <Image
+              src="/blog1.jpg"
+              alt="Featured blog 1"
+              width={1200}
+              height={800}
+              className="h-56 w-full object-cover"
+              priority
+            />
+            <div className="p-4">
+              <h3 className="font-semibold">Inspiration & Ideas</h3>
+              {/* Optional link to a static page or post */}
+              {/* <Link href="/post/slug-1" className="text-purple-600">Read more</Link> */}
+            </div>
           </div>
-          <div className="transition transform hover:-translate-y-1 hover:shadow-xl">
-            <Image src="/blog2.jpg" alt="write blog" width={400} height={250} className="rounded-lg" />
+
+          {/* Card 2 */}
+          <div className="rounded-2xl overflow-hidden shadow border bg-white">
+            <Image
+              src="/blog2.jpg"
+              alt="Featured blog 2"
+              width={1200}
+              height={800}
+              className="h-56 w-full object-cover"
+            />
+            <div className="p-4">
+              <h3 className="font-semibold">Tech & Tutorials</h3>
+            </div>
           </div>
-          <div className="transition transform hover:-translate-y-1 hover:shadow-xl">
-            <Image src="/blog3.png" alt="publish blog" width={400} height={250} className="rounded-lg" />
+
+          {/* Card 3 */}
+          <div className="rounded-2xl overflow-hidden shadow border bg-white">
+            <Image
+              src="/blog3.png"
+              alt="Featured blog 3"
+              width={1200}
+              height={800}
+              className="h-56 w-full object-cover"
+            />
+            <div className="p-4">
+              <h3 className="font-semibold">Stories & Life</h3>
+            </div>
           </div>
         </div>
-      </div>
-
-      <footer className="relative z-10 bg-indigo-600 text-white text-center py-5 mt-12 shadow-inner">
-        <p>&copy; {new Date().getFullYear()} Blogify. Built with ❤️ by Kshitij Gupta.</p>
-      </footer>
-    </div>
+      </section>
+    </main>
   );
 }

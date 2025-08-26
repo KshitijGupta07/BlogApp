@@ -1,10 +1,12 @@
-// app/dashboard/page.tsx
-'use client';
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import DashboardClient from "./DashboardClient";
 
-import dynamic from 'next/dynamic';
+export const runtime = "nodejs";
 
-const DashboardClient = dynamic(() => import('./DashboardClient'), { ssr: false });
-
-export default function DashboardPage() {
+export default async function Page() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
   return <DashboardClient />;
 }

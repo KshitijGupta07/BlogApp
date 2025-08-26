@@ -1,19 +1,18 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const PostSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    maxlength: 100,
+const PostSchema = new mongoose.Schema(
+  {
+    title:   { type: String, required: true },
+    content: { type: String, required: true },
+    image:   { type: String },
+    // link to your existing users collection
+    authorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    author:   { type: String }, // cached display name (optional)
   },
-  content: {
-    type: String,
-    required: true,
-  },
-  authorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-}, { timestamps: true });
+  { timestamps: true, collection: "posts" } // collection will be 'posts'
+);
 
-export default mongoose.models.Post || mongoose.model('Post', PostSchema);
+// helpful index for dashboards
+PostSchema.index({ createdAt: -1 });
+
+export default mongoose.models.Post || mongoose.model("Post", PostSchema);

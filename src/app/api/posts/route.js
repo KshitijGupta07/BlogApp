@@ -1,25 +1,39 @@
-import { connectDB } from "@/lib/db";
-import Post from "@/models/Post";
 import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Post from "@/models/Post";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { revalidateTag } from "next/cache";
+
+export const runtime = "nodejs";
 
 export async function GET() {
   await connectDB();
-  try {
-    const posts = await Post.find().sort({ createdAt: -1 });
-    return NextResponse.json(posts);
-  } catch (error) {
-    return NextResponse.json({ message: "Failed to fetch posts" }, { status: 500 });
-  }
+  const posts = await Post.find().sort({ createdAt: -1 }).lean();
+  return NextResponse.json(posts, { status: 200 });
 }
 
 export async function POST(req) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   await connectDB();
-  try {
-    const body = await req.json();
-    const newPost = new Post(body);
-    await newPost.save();
-    return NextResponse.json(newPost, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ message: "Failed to create post" }, { status: 500 });
+  const { title, content, image } = await req.json();
+
+  if (!title?.trim() || !content?.trim()) {
+    return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
   }
+
+  const created = await Post.create({
+    title: title.trim(),
+    content: content.trim(),
+    image: image || "",
+    authorId: session.user.id,
+    author: session.user.name || "User",
+  });
+
+  // If you fetch with tags on the client, this will revalidate them
+  revalidateTag("posts");
+
+  return NextResponse.json(created, { status: 201 });
 }

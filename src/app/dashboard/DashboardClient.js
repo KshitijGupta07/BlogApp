@@ -1,123 +1,83 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { defaultPosts } from '@/utils/defaultPosts';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { defaultPosts } from '@/utils/defaultPosts';
 
-export default function DashboardClient() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [posts, setPosts] = useState(defaultPosts);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [image, setImage] = useState('');
-  const [showError, setShowError] = useState(false);
+const LS_KEY = 'posts_v1';
+
+export default function HomePage() {
+  const [posts, setPosts] = useState([]);
+
+  const loadPosts = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw || raw === 'undefined') {
+        localStorage.setItem(LS_KEY, JSON.stringify(defaultPosts));
+        return defaultPosts;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : defaultPosts;
+    } catch {
+      localStorage.setItem(LS_KEY, JSON.stringify(defaultPosts));
+      return defaultPosts;
+    }
+  };
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
+    setPosts(loadPosts());
+  }, []);
 
-  if (status === 'loading') {
-    return <div className="text-center mt-10">Loading...</div>;
-  }
-
-  const user = session?.user;
-
-  const handleCreateVlog = () => {
-    if (!title || !content || !image) {
-      setShowError(true);
-      setTimeout(() => setShowError(false), 2500);
-      return;
-    }
-
-    const newPost = {
-      title,
-      content,
-      image,
-      author: user?.name || 'You',
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-
-    setPosts([newPost, ...posts]);
-    setTitle('');
-    setContent('');
-    setImage('');
+  const fmt = (d) => {
+    try { return new Date(d).toLocaleString(); } catch { return String(d || ''); }
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto relative">
-      <h1 className="text-4xl font-bold mb-8 text-center text-indigo-700 tracking-wide">
-        Welcome to Your Dashboard
-      </h1>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-4xl font-extrabold text-gray-900">All Posts</h1>
+          <Link
+            href="/create"
+            className="rounded-xl bg-purple-600 px-4 py-2 text-white font-semibold hover:bg-purple-700 transition"
+          >
+            Create New Post
+          </Link>
+        </div>
 
-      <div className="bg-white shadow-xl rounded-2xl p-6 mb-12 border border-gray-200">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">✍️ Create a New Vlog</h2>
-
-        {showError && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 animate-pulse">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">All fields are required!</span>
+        {posts.length === 0 ? (
+          <div className="text-center text-gray-600 py-16">
+            <p className="text-lg">No posts yet.</p>
+            <p>
+              Be the first to{' '}
+              <Link href="/create" className="text-purple-700 underline">create one</Link>.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((p) => (
+              <Link
+                key={p.id}
+                href={`/post/${p.id}`}
+                className="bg-white rounded-2xl shadow hover:shadow-md transition overflow-hidden flex flex-col"
+              >
+                {p.image ? (
+                  <img src={p.image} alt={p.title} className="h-44 w-full object-cover" />
+                ) : (
+                  <div className="h-44 w-full bg-gray-200" />
+                )}
+                <div className="p-4 flex-1 flex flex-col">
+                  <h3 className="font-bold text-lg line-clamp-2">{p.title}</h3>
+                  <p className="text-gray-600 text-sm mt-2 line-clamp-3">{p.content}</p>
+                  <div className="mt-auto pt-3 text-xs text-gray-500 flex justify-between">
+                    <span>✍️ {p.author || 'Anonymous'}</span>
+                    <span>{fmt(p.createdAt)}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
-
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Enter Title"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <textarea
-            placeholder="What's on your mind..."
-            className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Image URL (must be valid)"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-          />
-          <button
-            onClick={handleCreateVlog}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition"
-          >
-            🚀 Post Vlog
-          </button>
-        </div>
-      </div>
-
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">🔥 Top Blogs</h2>
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {posts.map((post, index) => (
-          <Link key={index} href={`/post/${index}`}>
-            <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition duration-300 overflow-hidden cursor-pointer border border-gray-200">
-              <div className="overflow-hidden">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="h-48 w-full object-cover transform hover:scale-105 transition duration-300 ease-in-out"
-                />
-              </div>
-              <div className="p-5">
-                <h3 className="text-xl font-semibold text-indigo-800 mb-2">{post.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {post.content.slice(0, 150)}...
-                </p>
-                <div className="mt-4 text-sm text-gray-500">
-                  By {post.author} • {post.createdAt}
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
       </div>
     </div>
   );
