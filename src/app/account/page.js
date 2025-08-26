@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import jwt_decode from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 
 export default function AccountPage() {
   const [user, setUser] = useState(null);
@@ -14,7 +14,7 @@ export default function AccountPage() {
     if (!token) return router.push('/login');
 
     try {
-      const decoded = jwt_decode(token);
+      const decoded = jwtDecode(token);
       setUser(decoded);
       fetchUserPosts(decoded.id);
     } catch (err) {
